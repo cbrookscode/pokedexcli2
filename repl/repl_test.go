@@ -1,4 +1,4 @@
-package main
+package repl
 
 import (
 	"testing"
@@ -31,7 +31,7 @@ func TestCleanInput(t *testing.T) {
 		},
 	}
 	for i, c := range cases {
-		actual := cleanInput(c.input)
+		actual := CleanInput(c.input)
 		if len(actual) != len(c.expected) {
 			t.Errorf("Length of actual and expected slice dont match: Test: %v, Got: %v, Want: %v", i, actual, c.expected)
 			t.Fail()

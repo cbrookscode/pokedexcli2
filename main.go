@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"github.com/cbrookscode/pokedexcli2/repl"
 )
 
 func main() {
 	// get available commands for the program
-	availableCommands := registerCommands()
+	availableCommands := repl.RegisterCommands()
 
 	// listen for user input
 	scanner := bufio.NewScanner(os.Stdin)
@@ -25,7 +27,7 @@ func main() {
 
 		// grab user input from scanner in string format
 		input := scanner.Text()
-		cleaned := cleanInput(input)
+		cleaned := repl.CleanInput(input)
 		if len(cleaned) == 0 {
 			fmt.Print("No command provided\n")
 			continue
@@ -38,6 +40,10 @@ func main() {
 			fmt.Printf("Command provided(%v) does not exist\n", usersCommand)
 			continue
 		}
-		command.callback()
+		err := command.Callback()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 }

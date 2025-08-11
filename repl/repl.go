@@ -1,11 +1,11 @@
-package main
+package repl
 
 import (
 	"strings"
 	"unicode"
 )
 
-func cleanInput(text string) []string {
+func CleanInput(text string) []string {
 	cleaned := []string{}
 	for _, word := range strings.Fields(strings.ToLower(text)) {
 		newword := ""
