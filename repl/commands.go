@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -10,17 +11,12 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	Callback    func() error
+	Callback    func(config *Config, cache *internal.Cache) error
 }
 
 type Config struct {
 	Next     string
 	Previous any
-}
-
-var pagination = Config{
-	Next:     "",
-	Previous: nil,
 }
 
 func RegisterCommands() map[string]cliCommand {
@@ -48,13 +44,13 @@ func RegisterCommands() map[string]cliCommand {
 	}
 	return commands
 }
-func commandExit() error {
+func commandExit(config *Config, cache *internal.Cache) error {
 	fmt.Printf("Closing the Pokedex... Goodbye!\n")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp() error {
+func commandHelp(config *Config, cache *internal.Cache) error {
 	fmt.Println("=================================")
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for key, command := range RegisterCommands() {
@@ -64,42 +60,123 @@ func commandHelp() error {
 	return nil
 }
 
-func commandMap() error {
-	url := "https://pokeapi.co/api/v2/location-area/"
-	if pagination.Next != "" {
-		url = pagination.Next
+// need to make check against default start point in case the program reaches the end of next pages available. Next would also be "" in this case.
+func commandMap(config *Config, cache *internal.Cache) error {
+	if config.Next == "" {
+		url := "https://pokeapi.co/api/v2/location-area/"
+		val, ok := cache.Get(url)
+		if ok {
+			locations := internal.ListofLocations{}
+			err := json.Unmarshal(val, &locations)
+			if err != nil {
+				return fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
+			}
+			fmt.Println("*** got information from cache ***")
+			for _, area := range locations.Results {
+				fmt.Println(area.Name)
+			}
+
+			config.Previous = nil
+			config.Next = locations.Next
+
+			return nil
+		}
+
+		locations, bytes, err := internal.GetLocations(url)
+		if err != nil {
+			return fmt.Errorf("error using map command: %v", err)
+		}
+
+		for _, area := range locations.Results {
+			fmt.Println(area.Name)
+		}
+
+		config.Next = locations.Next
+		config.Previous = nil
+		cache.Add(url, bytes)
+
+		return nil
 	}
 
-	locations, err := internal.GetLocations(url)
+	url := config.Next
+	fmt.Printf("url to get is: %v\n", url)
+	val, ok := cache.Get(url)
+	// found cached entry for next page request
+	if ok {
+		locations := internal.ListofLocations{}
+		err := json.Unmarshal(val, &locations)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
+		}
+		fmt.Println("*** got information from cache ***")
+		for _, area := range locations.Results {
+			fmt.Println(area.Name)
+		}
+
+		config.Next = locations.Next
+		config.Previous = locations.Previous
+
+		return nil
+	}
+
+	// make new get request, and cache data
+	locations, bytes, err := internal.GetLocations(url)
+	fmt.Printf("url to get is: %v\n", url)
 	if err != nil {
 		return fmt.Errorf("error using map command: %v", err)
 	}
-	pagination.Next = locations.Next
-	pagination.Previous = locations.Previous
 
 	for _, area := range locations.Results {
 		fmt.Println(area.Name)
 	}
+
+	config.Next = locations.Next
+	config.Previous = locations.Previous
+	cache.Add(url, bytes)
+	fmt.Println("cache added for recent url")
+
 	return nil
 }
 
-func commandMapb() error {
-	url, ok := pagination.Previous.(string)
+func commandMapb(config *Config, cache *internal.Cache) error {
+	url, ok := config.Previous.(string)
 	if !ok {
 		fmt.Println("there is no previous page to go back to")
 		return nil
 	}
 
-	locations, err := internal.GetLocations(url)
+	// check if cached
+	val, ok := cache.Get(url)
+	if ok {
+		locations := internal.ListofLocations{}
+		err := json.Unmarshal(val, &locations)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
+		}
+		fmt.Println("*** got information from cache ***")
+		for _, area := range locations.Results {
+			fmt.Println(area.Name)
+		}
+
+		config.Next = locations.Next
+		config.Previous = locations.Previous
+
+		return nil
+	}
+
+	// not cached, make new request and cache data
+	locations, bytes, err := internal.GetLocations(url)
 	if err != nil {
 		return fmt.Errorf("error getting locations: %v", err)
 	}
 
-	pagination.Next = locations.Next
-	pagination.Previous = locations.Previous
-
 	for _, area := range locations.Results {
 		fmt.Println(area.Name)
 	}
+
+	config.Next = locations.Next
+	config.Previous = locations.Previous
+	cache.Add(url, bytes)
+
 	return nil
 }

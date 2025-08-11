@@ -1,0 +1,5 @@
+Need to sort out what to do when hitting the end of the pagination table. would like it to be able to still go to last page of results if possible
+
+Need to sort out first page not being cached
+
+Need to clean up function logic and create some helper functions to avoid code duplication.

@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -18,20 +19,23 @@ type ListofLocations struct {
 	Results  []LocationArea `json:"results"`
 }
 
-func GetLocations(url string) (ListofLocations, error) {
+func GetLocations(url string) (ListofLocations, []byte, error) {
 	areas := ListofLocations{}
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return ListofLocations{}, fmt.Errorf("error with GET request at %v", url)
+		return ListofLocations{}, nil, fmt.Errorf("error with GET request at %v", url)
 	}
 	defer resp.Body.Close()
 
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&areas)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return ListofLocations{}, fmt.Errorf("error unmarshalling reponse from GET request at %v", url)
+		return ListofLocations{}, nil, fmt.Errorf("error reading http get reponse: %v", err)
+	}
+	err = json.Unmarshal(data, &areas)
+	if err != nil {
+		return ListofLocations{}, nil, fmt.Errorf("error unmarshalling reponse from GET request at %v", url)
 	}
 
-	return areas, nil
+	return areas, data, nil
 }
