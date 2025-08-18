@@ -16,7 +16,7 @@ func main() {
 
 	cache := internal.NewCache(60 * time.Second)
 
-	config := repl.Config{Next: "", Previous: nil}
+	config := repl.Config{Next: "", Current: "", Previous: nil}
 
 	// listen for user input
 	scanner := bufio.NewScanner(os.Stdin)

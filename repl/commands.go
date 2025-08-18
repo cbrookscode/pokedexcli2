@@ -2,6 +2,7 @@ package repl
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -16,6 +17,7 @@ type cliCommand struct {
 
 type Config struct {
 	Next     string
+	Current  string
 	Previous any
 }
 
@@ -62,121 +64,162 @@ func commandHelp(config *Config, cache *internal.Cache) error {
 
 // need to make check against default start point in case the program reaches the end of next pages available. Next would also be "" in this case.
 func commandMap(config *Config, cache *internal.Cache) error {
+	direction := "forward"
 	if config.Next == "" {
 		url := "https://pokeapi.co/api/v2/location-area/"
-		val, ok := cache.Get(url)
+
+		// check if cached
+		bytes, ok := cache.Get(url)
 		if ok {
-			locations := internal.ListofLocations{}
-			err := json.Unmarshal(val, &locations)
+			locations, err := printFromCache(bytes)
 			if err != nil {
-				return fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
+				return err
 			}
-			fmt.Println("*** got information from cache ***")
-			for _, area := range locations.Results {
-				fmt.Println(area.Name)
+			err = updatePreviousAndNext(&locations, config, direction, url)
+			if err != nil {
+				return err
 			}
-
-			config.Previous = nil
-			config.Next = locations.Next
-
 			return nil
 		}
 
-		locations, bytes, err := internal.GetLocations(url)
+		// not cached make new request
+		locations, err := printNewGetRequest(url)
 		if err != nil {
-			return fmt.Errorf("error using map command: %v", err)
+			return err
+		}
+		err = updatePreviousAndNext(&locations, config, direction, url)
+		if err != nil {
+			return err
 		}
 
-		for _, area := range locations.Results {
-			fmt.Println(area.Name)
+		// add to cache
+		bytes, err = json.Marshal(locations)
+		if err != nil {
+			return err
 		}
-
-		config.Next = locations.Next
-		config.Previous = nil
 		cache.Add(url, bytes)
 
 		return nil
 	}
 
 	url := config.Next
-	fmt.Printf("url to get is: %v\n", url)
-	val, ok := cache.Get(url)
-	// found cached entry for next page request
+	// check if cached
+	bytes, ok := cache.Get(url)
 	if ok {
-		locations := internal.ListofLocations{}
-		err := json.Unmarshal(val, &locations)
+		locations, err := printFromCache(bytes)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
+			return err
 		}
-		fmt.Println("*** got information from cache ***")
-		for _, area := range locations.Results {
-			fmt.Println(area.Name)
+		err = updatePreviousAndNext(&locations, config, direction, url)
+		if err != nil {
+			return err
 		}
-
-		config.Next = locations.Next
-		config.Previous = locations.Previous
-
 		return nil
 	}
 
-	// make new get request, and cache data
-	locations, bytes, err := internal.GetLocations(url)
-	fmt.Printf("url to get is: %v\n", url)
+	// not cached make new request
+	locations, err := printNewGetRequest(url)
 	if err != nil {
-		return fmt.Errorf("error using map command: %v", err)
+		return err
+	}
+	err = updatePreviousAndNext(&locations, config, direction, url)
+	if err != nil {
+		return err
 	}
 
-	for _, area := range locations.Results {
-		fmt.Println(area.Name)
+	// add to cache
+	bytes, err = json.Marshal(locations)
+	if err != nil {
+		return err
 	}
-
-	config.Next = locations.Next
-	config.Previous = locations.Previous
 	cache.Add(url, bytes)
-	fmt.Println("cache added for recent url")
 
 	return nil
 }
 
 func commandMapb(config *Config, cache *internal.Cache) error {
+	direction := "backward"
 	url, ok := config.Previous.(string)
-	if !ok {
+	if !ok || url == "" {
 		fmt.Println("there is no previous page to go back to")
 		return nil
 	}
 
 	// check if cached
-	val, ok := cache.Get(url)
+	bytes, ok := cache.Get(url)
 	if ok {
-		locations := internal.ListofLocations{}
-		err := json.Unmarshal(val, &locations)
+		locations, err := printFromCache(bytes)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
+			return err
 		}
-		fmt.Println("*** got information from cache ***")
-		for _, area := range locations.Results {
-			fmt.Println(area.Name)
+		err = updatePreviousAndNext(&locations, config, direction, url)
+		if err != nil {
+			return err
 		}
-
-		config.Next = locations.Next
-		config.Previous = locations.Previous
-
 		return nil
 	}
 
-	// not cached, make new request and cache data
-	locations, bytes, err := internal.GetLocations(url)
+	// not cached, make new request
+	locations, err := printNewGetRequest(url)
 	if err != nil {
-		return fmt.Errorf("error getting locations: %v", err)
+		return err
+	}
+	err = updatePreviousAndNext(&locations, config, direction, url)
+	if err != nil {
+		return err
+	}
+
+	// add to cache
+	bytes, err = json.Marshal(locations)
+	if err != nil {
+		return err
+	}
+	cache.Add(url, bytes)
+
+	return nil
+}
+
+func printFromCache(bytes []byte) (internal.ListofLocations, error) {
+	locations := internal.ListofLocations{}
+	err := json.Unmarshal(bytes, &locations)
+	if err != nil {
+		return locations, fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
 	}
 
 	for _, area := range locations.Results {
 		fmt.Println(area.Name)
 	}
 
-	config.Next = locations.Next
-	config.Previous = locations.Previous
-	cache.Add(url, bytes)
+	return locations, nil
+}
 
+func printNewGetRequest(url string) (internal.ListofLocations, error) {
+	locations, _, err := internal.GetLocations(url)
+	if err != nil {
+		return locations, fmt.Errorf("error making new get request: %v", err)
+	}
+
+	for _, area := range locations.Results {
+		fmt.Println(area.Name)
+	}
+
+	return locations, nil
+}
+
+func updatePreviousAndNext(locations *internal.ListofLocations, config *Config, direction string, url string) error {
+	switch direction {
+	case "forward":
+		config.Next = locations.Next
+		config.Previous = config.Current
+		locations.Previous = config.Current
+		config.Current = url
+	case "backward":
+		config.Next = config.Current
+		locations.Next = config.Current
+		config.Previous = locations.Previous
+		config.Current = url
+	default:
+		return errors.New("provided unexpected direction")
+	}
 	return nil
 }
