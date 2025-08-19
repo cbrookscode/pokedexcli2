@@ -72,6 +72,62 @@ type LocationArea struct {
 	} `json:"pokemon_encounters"`
 }
 
+type Pokemon struct {
+	Abilities []struct {
+		Ability struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"ability"`
+		IsHidden bool `json:"is_hidden"`
+		Slot     int  `json:"slot"`
+	} `json:"abilities"`
+	BaseExperience         int    `json:"base_experience"`
+	Height                 int    `json:"height"`
+	ID                     int    `json:"id"`
+	IsDefault              bool   `json:"is_default"`
+	LocationAreaEncounters string `json:"location_area_encounters"`
+	Moves                  []struct {
+		Move struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"move"`
+		VersionGroupDetails []struct {
+			LevelLearnedAt  int `json:"level_learned_at"`
+			MoveLearnMethod struct {
+				Name string `json:"name"`
+				URL  string `json:"url"`
+			} `json:"move_learn_method"`
+			Order        interface{} `json:"order"`
+			VersionGroup struct {
+				Name string `json:"name"`
+				URL  string `json:"url"`
+			} `json:"version_group"`
+		} `json:"version_group_details"`
+	} `json:"moves"`
+	Name    string `json:"name"`
+	Order   int    `json:"order"`
+	Species struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	} `json:"species"`
+	Stats []struct {
+		BaseStat int `json:"base_stat"`
+		Effort   int `json:"effort"`
+		Stat     struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"stat"`
+	} `json:"stats"`
+	Types []struct {
+		Slot int `json:"slot"`
+		Type struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"type"`
+	} `json:"types"`
+	Weight int `json:"weight"`
+}
+
 func GetLocations(url string) (ListofLocations, []byte, error) {
 	areas := ListofLocations{}
 
@@ -130,4 +186,19 @@ func GetPokemon(location string) (LocationArea, error) {
 	}
 
 	return area, nil
+}
+
+func CalcChancetoCatch(baseXP int) float64 {
+	// pick number between 1 - 100 this is number to meet or beat
+	// total xp granted is per pokemon variant of difficulty to catch
+	/*
+		scale determines effectives of xp as difficulty scaler. lower number means xp has higher impact
+		base chance = 100/ (100/(1+ (xp/scale)))
+		Convet base chance to odds with below
+		odds = bc/(1 - bc)
+		multiply your other multiplers that would increase chance against odds
+		go back to proability
+		p = odds / (1 + odds)
+		multiply p by 100 to get the integer for comparison for the random number between 1 - 100
+	*/
 }

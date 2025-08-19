@@ -236,3 +236,10 @@ func commandExplore(config *Config, cache *internal.Cache, input string) error {
 
 	return nil
 }
+
+func commandCatch(config *Config, cache *internal.Cache, input string) error {
+	// get random number between 1 - 100
+	// if calcchancetocatch number greater or equal to random number, then its caught, else it fails.
+	// internal.CalcChancetoCatch()
+	return nil
+}
