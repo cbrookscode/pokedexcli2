@@ -23,6 +23,7 @@ type Config struct {
 	Previous any
 }
 
+// To facilitate the ability to loop when moving back and forward in map and mapb commands. If this logic doesn't exist then when you get to first entry then you cant go back to last.
 func updatePreviousAndNext(locations *internal.ListofLocations, config *Config, direction string, url string) error {
 	switch direction {
 	case "forward":
