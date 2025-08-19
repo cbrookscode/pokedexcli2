@@ -93,6 +93,21 @@ func GetLocations(url string) (ListofLocations, []byte, error) {
 	return areas, data, nil
 }
 
+func PrintLocations(url string) (ListofLocations, error) {
+	locations, _, err := GetLocations(url)
+	if err != nil {
+		return locations, fmt.Errorf("error making new get request: %v", err)
+	}
+
+	fmt.Println("-------------------------------")
+	for _, area := range locations.Results {
+		fmt.Println(area.Name)
+	}
+	fmt.Println("-------------------------------")
+
+	return locations, nil
+}
+
 func GetPokemon(location string) (LocationArea, error) {
 	url := "https://pokeapi.co/api/v2/location-area/" + location
 	area := LocationArea{}

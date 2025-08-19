@@ -23,6 +23,24 @@ type Config struct {
 	Previous any
 }
 
+func updatePreviousAndNext(locations *internal.ListofLocations, config *Config, direction string, url string) error {
+	switch direction {
+	case "forward":
+		config.Next = locations.Next
+		config.Previous = config.Current
+		locations.Previous = config.Current
+		config.Current = url
+	case "backward":
+		config.Next = config.Current
+		locations.Next = config.Current
+		config.Previous = locations.Previous
+		config.Current = url
+	default:
+		return errors.New("provided unexpected direction")
+	}
+	return nil
+}
+
 func RegisterCommands() map[string]cliCommand {
 	commands := map[string]cliCommand{
 		"exit": {
@@ -87,7 +105,7 @@ func commandMap(config *Config, cache *internal.Cache, input string) error {
 		// check if cached
 		bytes, ok := cache.Get(url)
 		if ok {
-			locations, err := printFromCache(bytes)
+			locations, err := internal.PrintLocationsFromCache(bytes)
 			if err != nil {
 				return err
 			}
@@ -99,7 +117,7 @@ func commandMap(config *Config, cache *internal.Cache, input string) error {
 		}
 
 		// not cached make new request
-		locations, err := printNewGetRequest(url)
+		locations, err := internal.PrintLocations(url)
 		if err != nil {
 			return err
 		}
@@ -122,7 +140,7 @@ func commandMap(config *Config, cache *internal.Cache, input string) error {
 	// check if cached
 	bytes, ok := cache.Get(url)
 	if ok {
-		locations, err := printFromCache(bytes)
+		locations, err := internal.PrintLocationsFromCache(bytes)
 		if err != nil {
 			return err
 		}
@@ -134,7 +152,7 @@ func commandMap(config *Config, cache *internal.Cache, input string) error {
 	}
 
 	// not cached make new request
-	locations, err := printNewGetRequest(url)
+	locations, err := internal.PrintLocations(url)
 	if err != nil {
 		return err
 	}
@@ -164,7 +182,7 @@ func commandMapb(config *Config, cache *internal.Cache, input string) error {
 	// check if cached
 	bytes, ok := cache.Get(url)
 	if ok {
-		locations, err := printFromCache(bytes)
+		locations, err := internal.PrintLocationsFromCache(bytes)
 		if err != nil {
 			return err
 		}
@@ -176,7 +194,7 @@ func commandMapb(config *Config, cache *internal.Cache, input string) error {
 	}
 
 	// not cached, make new request
-	locations, err := printNewGetRequest(url)
+	locations, err := internal.PrintLocations(url)
 	if err != nil {
 		return err
 	}
@@ -215,54 +233,5 @@ func commandExplore(config *Config, cache *internal.Cache, input string) error {
 	}
 	fmt.Println("-----------------------")
 
-	return nil
-}
-
-func printFromCache(bytes []byte) (internal.ListofLocations, error) {
-	locations := internal.ListofLocations{}
-	err := json.Unmarshal(bytes, &locations)
-	if err != nil {
-		return locations, fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
-	}
-
-	fmt.Println("-------------------------------")
-	for _, area := range locations.Results {
-		fmt.Println(area.Name)
-	}
-	fmt.Println("-------------------------------")
-
-	return locations, nil
-}
-
-func printNewGetRequest(url string) (internal.ListofLocations, error) {
-	locations, _, err := internal.GetLocations(url)
-	if err != nil {
-		return locations, fmt.Errorf("error making new get request: %v", err)
-	}
-
-	fmt.Println("-------------------------------")
-	for _, area := range locations.Results {
-		fmt.Println(area.Name)
-	}
-	fmt.Println("-------------------------------")
-
-	return locations, nil
-}
-
-func updatePreviousAndNext(locations *internal.ListofLocations, config *Config, direction string, url string) error {
-	switch direction {
-	case "forward":
-		config.Next = locations.Next
-		config.Previous = config.Current
-		locations.Previous = config.Current
-		config.Current = url
-	case "backward":
-		config.Next = config.Current
-		locations.Next = config.Current
-		config.Previous = locations.Previous
-		config.Current = url
-	default:
-		return errors.New("provided unexpected direction")
-	}
 	return nil
 }
