@@ -46,7 +46,7 @@ func main() {
 			fmt.Printf("Command provided(%v) does not exist\n", usersCommand)
 			continue
 		}
-		err := command.Callback(&config, cache)
+		err := command.Callback(&config, cache, input)
 		if err != nil {
 			fmt.Println(err)
 			return

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/cbrookscode/pokedexcli2/internal"
 )
@@ -12,7 +14,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	Callback    func(config *Config, cache *internal.Cache) error
+	Callback    func(config *Config, cache *internal.Cache, input string) error
 }
 
 type Config struct {
@@ -43,31 +45,45 @@ func RegisterCommands() map[string]cliCommand {
 			description: "Get the previous 20 location areas",
 			Callback:    commandMapb,
 		},
+		"explore": {
+			name:        "mapb",
+			description: "Get the pokemon for a given location area",
+			Callback:    commandExplore,
+		},
 	}
 	return commands
 }
-func commandExit(config *Config, cache *internal.Cache) error {
+
+func commandExit(config *Config, cache *internal.Cache, input string) error {
 	fmt.Printf("Closing the Pokedex... Goodbye!\n")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(config *Config, cache *internal.Cache) error {
+func commandHelp(config *Config, cache *internal.Cache, input string) error {
+	// grab command list to sort key names into ordered list for better help menu ui experience
+	commands := RegisterCommands()
+	orderedKeys := []string{}
+	for key := range commands {
+		orderedKeys = append(orderedKeys, key)
+	}
+	sort.Strings(orderedKeys)
+
 	fmt.Println("=================================")
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
-	for key, command := range RegisterCommands() {
-		fmt.Printf("%v: %v\n", key, command.description)
+
+	for _, key := range orderedKeys {
+		fmt.Printf("%v: %v\n", key, commands[key].description)
 	}
 	fmt.Println("=================================")
 	return nil
 }
 
 // need to make check against default start point in case the program reaches the end of next pages available. Next would also be "" in this case.
-func commandMap(config *Config, cache *internal.Cache) error {
+func commandMap(config *Config, cache *internal.Cache, input string) error {
 	direction := "forward"
 	if config.Next == "" {
 		url := "https://pokeapi.co/api/v2/location-area/"
-
 		// check if cached
 		bytes, ok := cache.Get(url)
 		if ok {
@@ -137,7 +153,7 @@ func commandMap(config *Config, cache *internal.Cache) error {
 	return nil
 }
 
-func commandMapb(config *Config, cache *internal.Cache) error {
+func commandMapb(config *Config, cache *internal.Cache, input string) error {
 	direction := "backward"
 	url, ok := config.Previous.(string)
 	if !ok || url == "" {
@@ -179,6 +195,29 @@ func commandMapb(config *Config, cache *internal.Cache) error {
 	return nil
 }
 
+// provide list of pokemon in provided location
+func commandExplore(config *Config, cache *internal.Cache, input string) error {
+	cleanedInput := strings.Fields(strings.ToLower(input))
+	if len(cleanedInput) < 2 {
+		fmt.Println("please provide a location name after explore. Ex: explore canalave-city-area")
+		return nil
+	}
+
+	area, err := internal.GetPokemon(cleanedInput[1])
+	if err != nil {
+		fmt.Println("issue grabbing this location. Location name is incorrectly spelled or doesn't exist")
+		return nil
+	}
+
+	fmt.Println("---- Found Pokemon ----")
+	for _, pokemon := range area.PokemonEncounters {
+		fmt.Printf(" - %v\n", pokemon.Pokemon.Name)
+	}
+	fmt.Println("-----------------------")
+
+	return nil
+}
+
 func printFromCache(bytes []byte) (internal.ListofLocations, error) {
 	locations := internal.ListofLocations{}
 	err := json.Unmarshal(bytes, &locations)
@@ -186,9 +225,11 @@ func printFromCache(bytes []byte) (internal.ListofLocations, error) {
 		return locations, fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
 	}
 
+	fmt.Println("-------------------------------")
 	for _, area := range locations.Results {
 		fmt.Println(area.Name)
 	}
+	fmt.Println("-------------------------------")
 
 	return locations, nil
 }
@@ -199,9 +240,11 @@ func printNewGetRequest(url string) (internal.ListofLocations, error) {
 		return locations, fmt.Errorf("error making new get request: %v", err)
 	}
 
+	fmt.Println("-------------------------------")
 	for _, area := range locations.Results {
 		fmt.Println(area.Name)
 	}
+	fmt.Println("-------------------------------")
 
 	return locations, nil
 }
