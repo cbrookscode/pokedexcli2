@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -66,8 +67,13 @@ func RegisterCommands() map[string]cliCommand {
 		},
 		"explore": {
 			name:        "mapb",
-			description: "Get the pokemon for a given location area",
+			description: "See what pokemon are available for a given location area",
 			Callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch",
+			description: "Try to catch a pokemon",
+			Callback:    commandCatch,
 		},
 	}
 	return commands
@@ -222,7 +228,7 @@ func commandExplore(config *Config, cache *internal.Cache, input string) error {
 		return nil
 	}
 
-	area, err := internal.GetPokemon(cleanedInput[1])
+	area, err := internal.GetLocationsPokemon(cleanedInput[1])
 	if err != nil {
 		fmt.Println("issue grabbing this location. Location name is incorrectly spelled or doesn't exist")
 		return nil
@@ -238,8 +244,29 @@ func commandExplore(config *Config, cache *internal.Cache, input string) error {
 }
 
 func commandCatch(config *Config, cache *internal.Cache, input string) error {
+	// get pokemon name
+	cleanedInput := strings.Fields(strings.ToLower(input))
+	if len(cleanedInput) < 2 {
+		fmt.Println("please provide a pokemon name after catch. Ex: catch pikachu")
+		return nil
+	}
+
+	// make get request for pokemon xp
+	pokemon, err := internal.GetPokemon(cleanedInput[1])
+	if err != nil {
+		fmt.Println("issue grabbing this pokemon. Pokemon name is incorrectly spelled or doesn't exist")
+		return nil
+	}
+
 	// get random number between 1 - 100
+	myRNG := rand.Intn(101)
+
 	// if calcchancetocatch number greater or equal to random number, then its caught, else it fails.
-	// internal.CalcChancetoCatch()
+	difficulty := internal.CalcChancetoCatchDifficulty(pokemon.BaseExperience)
+	if float64(myRNG) >= difficulty {
+		fmt.Printf("You've caught %v!\n", pokemon.Name)
+		return nil
+	}
+	fmt.Printf("%v managed to break free!\n", pokemon.Name)
 	return nil
 }

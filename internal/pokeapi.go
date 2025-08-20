@@ -164,7 +164,7 @@ func PrintLocations(url string) (ListofLocations, error) {
 	return locations, nil
 }
 
-func GetPokemon(location string) (LocationArea, error) {
+func GetLocationsPokemon(location string) (LocationArea, error) {
 	url := "https://pokeapi.co/api/v2/location-area/" + location
 	area := LocationArea{}
 
@@ -188,17 +188,43 @@ func GetPokemon(location string) (LocationArea, error) {
 	return area, nil
 }
 
-func CalcChancetoCatch(baseXP int) float64 {
-	// pick number between 1 - 100 this is number to meet or beat
+func GetPokemon(pokemon_name string) (Pokemon, error) {
+	url := "https://pokeapi.co/api/v2/pokemon/" + pokemon_name
+	pokemon := Pokemon{}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return pokemon, fmt.Errorf("error with GET request: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return pokemon, fmt.Errorf("error reading http get response: %v", err)
+	}
+
+	err = json.Unmarshal(data, &pokemon)
+	if err != nil {
+		return pokemon, fmt.Errorf("error unmarshalling json: %v", err)
+	}
+
+	return pokemon, nil
+
+}
+
+func CalcChancetoCatchDifficulty(baseXP int) float64 {
 	// total xp granted is per pokemon variant of difficulty to catch
-	/*
-		scale determines effectives of xp as difficulty scaler. lower number means xp has higher impact
-		base chance = 100/ (100/(1+ (xp/scale)))
-		Convet base chance to odds with below
-		odds = bc/(1 - bc)
-		multiply your other multiplers that would increase chance against odds
-		go back to proability
-		p = odds / (1 + odds)
-		multiply p by 100 to get the integer for comparison for the random number between 1 - 100
-	*/
+	// scale determines effectives of xp as difficulty scaler. lower number means xp has higher impact
+	scale := 50.00
+	base_chance := (100.00 / (1.00 + (float64(baseXP) / scale))) / 100
+
+	// Convert base chance to odds with below
+	odds := base_chance / (1 - base_chance)
+
+	// multiply your other multiplers that would increase chance against odds
+
+	// go back to probability. multiply p by 100 to get the integer for comparison for the random number between 1 - 100
+	difficulty := 100 - (100.00 * (odds / (1.00 + odds)))
+	return difficulty
 }
