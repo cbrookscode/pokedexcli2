@@ -319,7 +319,7 @@ func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pok
 
 func commandPokedex(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	fmt.Println("Your Pokedex:")
-	for key, _ := range pokedex.Entries {
+	for key := range pokedex.Entries {
 		fmt.Printf("   - %v\n", key)
 	}
 	fmt.Println()
