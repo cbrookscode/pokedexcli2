@@ -15,7 +15,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	Callback    func(config *Config, cache *internal.Cache, input string) error
+	Callback    func(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error
 }
 
 type Config struct {
@@ -75,17 +75,27 @@ func RegisterCommands() map[string]cliCommand {
 			description: "Try to catch a pokemon",
 			Callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Get information from your Pokedex about the provided pokemon",
+			Callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "See what pokemon you have captured",
+			Callback:    commandPokedex,
+		},
 	}
 	return commands
 }
 
-func commandExit(config *Config, cache *internal.Cache, input string) error {
+func commandExit(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	fmt.Printf("Closing the Pokedex... Goodbye!\n")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(config *Config, cache *internal.Cache, input string) error {
+func commandHelp(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	// grab command list to sort key names into ordered list for better help menu ui experience
 	commands := RegisterCommands()
 	orderedKeys := []string{}
@@ -105,7 +115,7 @@ func commandHelp(config *Config, cache *internal.Cache, input string) error {
 }
 
 // need to make check against default start point in case the program reaches the end of next pages available. Next would also be "" in this case.
-func commandMap(config *Config, cache *internal.Cache, input string) error {
+func commandMap(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	direction := "forward"
 	if config.Next == "" {
 		url := "https://pokeapi.co/api/v2/location-area/"
@@ -178,11 +188,11 @@ func commandMap(config *Config, cache *internal.Cache, input string) error {
 	return nil
 }
 
-func commandMapb(config *Config, cache *internal.Cache, input string) error {
+func commandMapb(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	direction := "backward"
 	url, ok := config.Previous.(string)
 	if !ok || url == "" {
-		fmt.Println("there is no previous page to go back to")
+		fmt.Printf("there is no previous page to go back to\n\n")
 		return nil
 	}
 
@@ -221,7 +231,7 @@ func commandMapb(config *Config, cache *internal.Cache, input string) error {
 }
 
 // provide list of pokemon in provided location
-func commandExplore(config *Config, cache *internal.Cache, input string) error {
+func commandExplore(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	cleanedInput := strings.Fields(strings.ToLower(input))
 	if len(cleanedInput) < 2 {
 		fmt.Println("please provide a location name after explore. Ex: explore canalave-city-area")
@@ -243,7 +253,7 @@ func commandExplore(config *Config, cache *internal.Cache, input string) error {
 	return nil
 }
 
-func commandCatch(config *Config, cache *internal.Cache, input string) error {
+func commandCatch(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	// get pokemon name
 	cleanedInput := strings.Fields(strings.ToLower(input))
 	if len(cleanedInput) < 2 {
@@ -251,22 +261,67 @@ func commandCatch(config *Config, cache *internal.Cache, input string) error {
 		return nil
 	}
 
-	// make get request for pokemon xp
-	pokemon, err := internal.GetPokemon(cleanedInput[1])
+	// grab pokemon info if in pokedex already
+	pokemon, err := pokedex.GetPokemonFromPokedex(cleanedInput[1])
 	if err != nil {
-		fmt.Println("issue grabbing this pokemon. Pokemon name is incorrectly spelled or doesn't exist")
-		return nil
+		// make get request for pokemon xp
+		pokemon, err = internal.GetPokemon(cleanedInput[1])
+		if err != nil {
+			fmt.Println("issue grabbing this pokemon. Pokemon name is incorrectly spelled or doesn't exist")
+			return nil
+		}
 	}
 
-	// get random number between 1 - 100
-	myRNG := rand.Intn(101)
+	fmt.Printf("Throwing a Pokeball at %v...\n", pokemon.Name)
 
-	// if calcchancetocatch number greater or equal to random number, then its caught, else it fails.
+	// Calculate chance to catch and determine if successful. Add to pokedex
+	myRNG := rand.Intn(101)
 	difficulty := internal.CalcChancetoCatchDifficulty(pokemon.BaseExperience)
 	if float64(myRNG) >= difficulty {
-		fmt.Printf("You've caught %v!\n", pokemon.Name)
+		pokedex.AddPokemonToPokedex(pokemon)
+		fmt.Printf("You've caught %v!\n\n", pokemon.Name)
 		return nil
 	}
 	fmt.Printf("%v managed to break free!\n", pokemon.Name)
+
+	fmt.Println()
+	return nil
+}
+
+func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
+	// get pokemon name
+	cleanedInput := strings.Fields(strings.ToLower(input))
+	if len(cleanedInput) < 2 {
+		fmt.Println("please provide a pokemon name after inspect. Ex: inspect pikachu")
+		return nil
+	}
+
+	pokemon, err := pokedex.GetPokemonFromPokedex(cleanedInput[1])
+	if err != nil {
+		fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spell incorrectly\n\n")
+		return nil
+	}
+
+	// Print Pokemon info
+	fmt.Printf("Name: %v\n", pokemon.Name)
+	fmt.Println("Stats:")
+	for _, statstruct := range pokemon.Stats {
+		fmt.Printf("   -%v: %v\n", statstruct.Stat.Name, statstruct.BaseStat)
+	}
+	fmt.Println("Types:")
+	for _, types := range pokemon.Types {
+		fmt.Printf("   - %v\n", types.Type.Name)
+	}
+
+	fmt.Println()
+	return nil
+}
+
+func commandPokedex(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
+	fmt.Println("Your Pokedex:")
+	for key, _ := range pokedex.Entries {
+		fmt.Printf("   - %v\n", key)
+	}
+	fmt.Println()
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 )
 
 type LocationNames struct {
@@ -70,6 +71,11 @@ type LocationArea struct {
 			} `json:"version"`
 		} `json:"version_details"`
 	} `json:"pokemon_encounters"`
+}
+
+type Pokedex struct {
+	Entries map[string]Pokemon
+	mu      sync.Mutex
 }
 
 type Pokemon struct {
@@ -210,7 +216,27 @@ func GetPokemon(pokemon_name string) (Pokemon, error) {
 	}
 
 	return pokemon, nil
+}
 
+func (p *Pokedex) AddPokemonToPokedex(pokemon Pokemon) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	_, exist := p.Entries[pokemon.Name]
+	if exist {
+		return
+	}
+	p.Entries[pokemon.Name] = pokemon
+}
+
+func (p *Pokedex) GetPokemonFromPokedex(pokemon_name string) (Pokemon, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	pokemon, exist := p.Entries[pokemon_name]
+	if !exist {
+		return Pokemon{}, fmt.Errorf("pokemon name provided doesn't exist in Pokedex")
+	}
+
+	return pokemon, nil
 }
 
 func CalcChancetoCatchDifficulty(baseXP int) float64 {

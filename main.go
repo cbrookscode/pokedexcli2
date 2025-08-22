@@ -18,6 +18,8 @@ func main() {
 
 	config := repl.Config{Next: "", Current: "", Previous: nil}
 
+	pokedex := internal.Pokedex{Entries: make(map[string]internal.Pokemon)}
+
 	// listen for user input
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -43,10 +45,10 @@ func main() {
 
 		command, ok := availableCommands[usersCommand]
 		if !ok {
-			fmt.Printf("Command provided(%v) does not exist\n", usersCommand)
+			fmt.Printf("Command provided(%v) does not exist\n\n", usersCommand)
 			continue
 		}
-		err := command.Callback(&config, cache, input)
+		err := command.Callback(&config, cache, &pokedex, input)
 		if err != nil {
 			fmt.Println(err)
 			return
