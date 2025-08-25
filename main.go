@@ -16,7 +16,14 @@ func main() {
 
 	cache := internal.NewCache(60 * time.Second)
 
-	config := repl.Config{Next: "", Current: "", Previous: nil}
+	fd := os.Stdin.Fd()
+	orig, err := repl.EnableRawMode(fd)
+	if err != nil {
+		fmt.Printf("error enabling raw mode for terminal input")
+		os.Exit(1)
+	}
+
+	config := repl.Config{Next: "", Current: "", Previous: nil, Orig_Term_Settings: orig}
 
 	pokedex := internal.Pokedex{Entries: make(map[string]internal.Pokemon)}
 

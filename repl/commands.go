@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/cbrookscode/pokedexcli2/internal"
 )
@@ -19,9 +20,11 @@ type cliCommand struct {
 }
 
 type Config struct {
-	Next     string
-	Current  string
-	Previous any
+	Next               string
+	Current            string
+	Previous           any
+	Orig_Term_Settings *syscall.Termios
+	File_desc          uintptr
 }
 
 // To facilitate the ability to loop when moving back and forward in map and mapb commands. If this logic doesn't exist then when you get to first entry then you cant go back to last.
@@ -91,6 +94,10 @@ func RegisterCommands() map[string]cliCommand {
 
 func commandExit(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	fmt.Printf("Closing the Pokedex... Goodbye!\n")
+	err := DisableRawMode(config.File_desc, config.Orig_Term_Settings)
+	if err != nil {
+		return err
+	}
 	os.Exit(0)
 	return nil
 }

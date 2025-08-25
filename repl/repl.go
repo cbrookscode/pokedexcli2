@@ -8,13 +8,13 @@ import (
 )
 
 // passed fd can be obtained by os.stdin.fd(). returned termious struct pointer will be original terminal settings to revert back to
-func enableRawMode(fd int) (*syscall.Termios, error) {
+func EnableRawMode(fd uintptr) (*syscall.Termios, error) {
 	// struct containing settings for terminal
 	orig := &syscall.Termios{}
 
 	// system call to linux kernal to obtain terminal settings. first variable is type of system call, next is getting file descriptor for stdin which is the location we want to be working in,
 	// tcgets is getting the terminal settings, last arguement is struct to put info into.
-	_, _, err := syscall.Syscall6(uintptr(syscall.SYS_IOCTL), uintptr(fd), uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(orig)), 0, 0, 0)
+	_, _, err := syscall.Syscall6(uintptr(syscall.SYS_IOCTL), fd, uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(orig)), 0, 0, 0)
 	if err != 0 {
 		return nil, err
 	}
@@ -26,13 +26,23 @@ func enableRawMode(fd int) (*syscall.Termios, error) {
 	// icanon controls whether or not terminal holds it as a buffer until user hits enter, echo controls printing to terminal.
 	raw.Lflag &^= syscall.ICANON | syscall.ECHO
 
-	_, _, err = syscall.Syscall6(uintptr(syscall.SYS_IOCTL), uintptr(fd), uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(&raw)), 0, 0, 0)
+	_, _, err = syscall.Syscall6(uintptr(syscall.SYS_IOCTL), fd, uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(&raw)), 0, 0, 0)
 	if err != 0 {
 		return nil, err
 	}
 
 	return orig, nil
 }
+
+func DisableRawMode(fd uintptr, orig *syscall.Termios) error {
+	_, _, err := syscall.Syscall6(uintptr(syscall.SYS_IOCTL), fd, uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(orig)), 0, 0, 0)
+	if err != 0 {
+		return err
+	}
+
+	return nil
+}
+
 func CleanInput(text string) []string {
 	cleaned := []string{}
 	for _, word := range strings.Fields(strings.ToLower(text)) {
