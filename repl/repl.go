@@ -17,10 +17,10 @@ type Terminal struct {
 	cursor      int
 }
 
-func redrawTerminal(term *Terminal, backstep bool) {
+func redrawTerminal(term *Terminal, calc_backstep bool) {
 	fmt.Print("\r\033[K")
 	fmt.Printf("Pokedex > %s", term.input_bytes)
-	if backstep {
+	if calc_backstep {
 		num_backsteps := len(term.input_bytes) - term.cursor
 		if num_backsteps > 0 {
 			fmt.Printf("\033[%dD", num_backsteps)
