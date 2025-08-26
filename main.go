@@ -23,9 +23,7 @@ func main() {
 	}
 	defer repl.DisableRawMode(fd, orig)
 
-	term := repl.Terminal{
-		History: []string{},
-	}
+	term := repl.Terminal{}
 
 	config := repl.Config{Next: "", Current: "", Previous: nil, Orig_Term_Settings: orig}
 

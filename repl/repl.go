@@ -10,42 +10,55 @@ import (
 )
 
 type Terminal struct {
-	Input_bytes []byte
-	Index       int
-	History     []string
+	input_bytes []byte
+	index       int
+	history     []string
 	User_input  string
+	cursor      int
+}
+
+func redrawTerminal(term *Terminal, backstep bool) {
+	fmt.Print("\r\033[K")
+	fmt.Printf("Pokedex > %s", term.input_bytes)
+	if backstep {
+		num_backsteps := len(term.input_bytes) - term.cursor
+		if num_backsteps > 0 {
+			fmt.Printf("\033[%dD", num_backsteps)
+		}
+	} else {
+		term.cursor = len(term.input_bytes)
+	}
 }
 
 func HandleUserInput(term *Terminal) {
 	exit := false
-
+	term.cursor = 0
 	fmt.Print("Pokedex > ")
 	for {
 		buf := make([]byte, 1)
-
 		_, err := os.Stdin.Read(buf)
 		if err != nil {
 			fmt.Printf("error reading user input\n")
 			os.Exit(2)
 		}
 		switch buf[0] {
-		// enter
-		case '\r', '\n':
+		case '\r', '\n': // enter
 			fmt.Print("\n")
-			term.History = append(term.History, string(term.Input_bytes))
-			term.Index = len(term.History)
-			term.User_input = string(term.Input_bytes)
-			term.Input_bytes = term.Input_bytes[:0]
+			term.history = append(term.history, string(term.input_bytes))
+			term.index = len(term.history)
+			term.User_input = string(term.input_bytes)
+			term.input_bytes = term.input_bytes[:0]
 			exit = true
-		// backspace or del
-		case '\b', '\x7F':
-			if len(term.Input_bytes) == 0 {
+		case '\b', '\x7F': // backspace
+			if len(term.input_bytes) == 0 {
 				continue
 			}
-			term.Input_bytes = term.Input_bytes[:len(term.Input_bytes)-1]
-			fmt.Print("\b \b")
-		// escape key / start of arrow keys
-		case '\x1b':
+			if term.cursor > 0 {
+				term.input_bytes = append(term.input_bytes[:term.cursor-1], term.input_bytes[term.cursor:]...)
+				term.cursor--
+				redrawTerminal(term, true)
+			}
+		case '\x1b': // escape key / start of arrow keys
 			_, err = os.Stdin.Read(buf)
 			if err != nil {
 				fmt.Printf("error reading user input\n")
@@ -55,38 +68,43 @@ func HandleUserInput(term *Terminal) {
 			case '[':
 				os.Stdin.Read(buf)
 				switch buf[0] {
-				case 'A':
-					if len(term.History) < 1 {
+				case 'A': // up arrow
+					if len(term.history) < 1 {
 						continue
 					}
-					if term.Index-1 >= 0 {
-						term.Index--
-						fmt.Print("\r\033[2K")
-						fmt.Print("Pokedex > ")
-						previous_input := term.History[term.Index]
-						fmt.Printf("%s", previous_input)
-						term.Input_bytes = []byte(previous_input)
+					if term.index-1 >= 0 {
+						term.index--
+						term.input_bytes = []byte(term.history[term.index])
+						redrawTerminal(term, false)
 					}
-				case 'B':
-					if len(term.History) < 1 {
+				case 'B': // down arrow
+					if len(term.history) < 1 {
 						continue
 					}
-					if term.Index+1 >= len(term.History) {
+					if term.index+1 >= len(term.history) {
 						continue
 					}
-					term.Index++
-					fmt.Print("\r\033[2K")
-					fmt.Print("Pokedex > ")
-					previous_input := term.History[term.Index]
-					fmt.Printf("%s", previous_input)
-					term.Input_bytes = []byte(previous_input)
-				case 'C':
-				case 'D':
+					term.index++
+					term.input_bytes = []byte(term.history[term.index])
+					redrawTerminal(term, false)
+				case 'C': // right arrow
+					if term.cursor < len(term.input_bytes) {
+						fmt.Print("\033[C")
+						term.cursor++
+					}
+				case 'D': // left arrow
+					if term.cursor > 0 {
+						fmt.Print("\033[D")
+						term.cursor--
+					}
 				}
 			}
 		default:
-			term.Input_bytes = append(term.Input_bytes, buf[0])
-			fmt.Printf("%c", buf[0])
+			if term.cursor >= 0 && term.cursor <= len(term.input_bytes) {
+				term.input_bytes = append(term.input_bytes[:term.cursor], append([]byte{buf[0]}, term.input_bytes[term.cursor:]...)...)
+				term.cursor++
+				redrawTerminal(term, true)
+			}
 		}
 		if exit {
 			break
