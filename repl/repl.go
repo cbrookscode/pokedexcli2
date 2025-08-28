@@ -97,6 +97,18 @@ func HandleUserInput(term *Terminal) {
 						fmt.Print("\033[D")
 						term.cursor--
 					}
+				case '3':
+					os.Stdin.Read(buf)
+					switch buf[0] {
+					case '~': // delete key
+						if len(term.input_bytes) == 0 || term.cursor > len(term.input_bytes)-1 {
+							continue
+						}
+						if term.cursor >= 0 {
+							term.input_bytes = append(term.input_bytes[:term.cursor], term.input_bytes[term.cursor+1:]...)
+							redrawTerminal(term, true)
+						}
+					}
 				}
 			}
 		default:
