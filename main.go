@@ -30,7 +30,7 @@ func main() {
 	pokedex := internal.Pokedex{Entries: make(map[string]internal.Pokemon)}
 
 	for {
-		repl.HandleUserInput(&term)
+		repl.HandleUserInput(&term, fd, orig)
 
 		cleaned := repl.CleanInput(term.User_input)
 		if len(cleaned) == 0 {

@@ -4,9 +4,9 @@ documentation and review code logic
 
 implement delay and "shake" logic before catching or having a pokemon release
 
-implement up and down arrow to use previous commands
+add standard terminal input commands such as pagination of previous commands, backspace and delete keys, arrowing through input, and using interrupt commands.
 
-and selectability to menu options provided. number options listed and then associate numebrs with command input.
+add selectability to menu options provided. number options listed and then associate numebrs with command input.
 
 look into making more helpful tests for code
 
@@ -28,3 +28,5 @@ make exploration better and more interesting. maybe give player a few options th
 trigger encounters while exploring
 
 add different types of pokeballs
+
+make it a downloadable executable that someone can run from their terminal of choice.

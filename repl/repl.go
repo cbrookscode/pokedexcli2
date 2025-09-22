@@ -3,6 +3,7 @@ package repl
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 	"syscall"
 	"unicode"
@@ -30,7 +31,8 @@ func redrawTerminal(term *Terminal, calc_backstep bool) {
 	}
 }
 
-func HandleUserInput(term *Terminal) {
+func HandleUserInput(term *Terminal, fd uintptr, orig *syscall.Termios) {
+	HandleInterrupts(fd, orig)
 	exit := false
 	term.cursor = 0
 	fmt.Print("Pokedex > ")
@@ -123,6 +125,18 @@ func HandleUserInput(term *Terminal) {
 			break
 		}
 	}
+}
+
+func HandleInterrupts(fd uintptr, orig *syscall.Termios) {
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
+
+	go func() {
+		<-sigs
+		DisableRawMode(fd, orig)
+		os.Exit(1)
+	}()
 }
 
 // passed fd can be obtained by os.stdin.fd(). returned termious struct pointer will be original terminal settings to revert back to
