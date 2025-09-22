@@ -18,7 +18,7 @@ type Terminal struct {
 }
 
 func redrawTerminal(term *Terminal, calc_backstep bool) {
-	fmt.Print("\r\033[K")
+	fmt.Print("\r\033[K") // clear current line
 	fmt.Printf("Pokedex > %s", term.input_bytes)
 	if calc_backstep {
 		num_backsteps := len(term.input_bytes) - term.cursor
@@ -34,8 +34,8 @@ func HandleUserInput(term *Terminal) {
 	exit := false
 	term.cursor = 0
 	fmt.Print("Pokedex > ")
+	buf := make([]byte, 1)
 	for {
-		buf := make([]byte, 1)
 		_, err := os.Stdin.Read(buf)
 		if err != nil {
 			fmt.Printf("error reading user input\n")
@@ -49,7 +49,7 @@ func HandleUserInput(term *Terminal) {
 			term.User_input = string(term.input_bytes)
 			term.input_bytes = term.input_bytes[:0]
 			exit = true
-		case '\b', '\x7F': // backspace
+		case '\b', '\x7f': // backspace
 			if len(term.input_bytes) == 0 {
 				continue
 			}
@@ -113,6 +113,7 @@ func HandleUserInput(term *Terminal) {
 			}
 		default:
 			if term.cursor >= 0 && term.cursor <= len(term.input_bytes) {
+				// supports appending new character anywhere in the current input byte slice
 				term.input_bytes = append(term.input_bytes[:term.cursor], append([]byte{buf[0]}, term.input_bytes[term.cursor:]...)...)
 				term.cursor++
 				redrawTerminal(term, true)
