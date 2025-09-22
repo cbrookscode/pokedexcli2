@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -19,12 +18,17 @@ type cliCommand struct {
 	Callback    func(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error
 }
 
+type Menu struct {
+	Options map[string]string
+}
+
 type Config struct {
 	Next               string
 	Current            string
 	Previous           any
 	Orig_Term_Settings *syscall.Termios
 	File_desc          uintptr
+	Menu_options       Menu
 }
 
 // To facilitate the ability to loop when moving back and forward in map and mapb commands. If this logic doesn't exist then when you get to first entry then you cant go back to last.
@@ -96,7 +100,7 @@ func commandExit(config *Config, cache *internal.Cache, pokedex *internal.Pokede
 	fmt.Printf("Closing the Pokedex... Goodbye!\n")
 	err := DisableRawMode(config.File_desc, config.Orig_Term_Settings)
 	if err != nil {
-		return err
+		return fmt.Errorf("there was an error disabling raw mode: %w", err)
 	}
 	os.Exit(0)
 	return nil
@@ -129,10 +133,11 @@ func commandMap(config *Config, cache *internal.Cache, pokedex *internal.Pokedex
 		// check if cached
 		bytes, ok := cache.Get(url)
 		if ok {
-			locations, err := internal.PrintLocationsFromCache(bytes)
+			locations, err := internal.GetLocationsFromCache(bytes)
 			if err != nil {
 				return err
 			}
+			DisplayLocations(locations, config)
 			err = updatePreviousAndNext(&locations, config, direction, url)
 			if err != nil {
 				return err
@@ -141,17 +146,12 @@ func commandMap(config *Config, cache *internal.Cache, pokedex *internal.Pokedex
 		}
 
 		// not cached make new request
-		locations, err := internal.PrintLocations(url)
+		locations, bytes, err := internal.GetLocations(url)
 		if err != nil {
 			return err
 		}
+		DisplayLocations(locations, config)
 		err = updatePreviousAndNext(&locations, config, direction, url)
-		if err != nil {
-			return err
-		}
-
-		// add to cache
-		bytes, err = json.Marshal(locations)
 		if err != nil {
 			return err
 		}
@@ -164,10 +164,11 @@ func commandMap(config *Config, cache *internal.Cache, pokedex *internal.Pokedex
 	// check if cached
 	bytes, ok := cache.Get(url)
 	if ok {
-		locations, err := internal.PrintLocationsFromCache(bytes)
+		locations, err := internal.GetLocationsFromCache(bytes)
 		if err != nil {
 			return err
 		}
+		DisplayLocations(locations, config)
 		err = updatePreviousAndNext(&locations, config, direction, url)
 		if err != nil {
 			return err
@@ -176,17 +177,12 @@ func commandMap(config *Config, cache *internal.Cache, pokedex *internal.Pokedex
 	}
 
 	// not cached make new request
-	locations, err := internal.PrintLocations(url)
+	locations, bytes, err := internal.GetLocations(url)
 	if err != nil {
 		return err
 	}
+	DisplayLocations(locations, config)
 	err = updatePreviousAndNext(&locations, config, direction, url)
-	if err != nil {
-		return err
-	}
-
-	// add to cache
-	bytes, err = json.Marshal(locations)
 	if err != nil {
 		return err
 	}
@@ -206,10 +202,11 @@ func commandMapb(config *Config, cache *internal.Cache, pokedex *internal.Pokede
 	// check if cached
 	bytes, ok := cache.Get(url)
 	if ok {
-		locations, err := internal.PrintLocationsFromCache(bytes)
+		locations, err := internal.GetLocationsFromCache(bytes)
 		if err != nil {
 			return err
 		}
+		DisplayLocations(locations, config)
 		err = updatePreviousAndNext(&locations, config, direction, url)
 		if err != nil {
 			return err
@@ -218,17 +215,12 @@ func commandMapb(config *Config, cache *internal.Cache, pokedex *internal.Pokede
 	}
 
 	// not cached, make new request
-	locations, err := internal.PrintLocations(url)
+	locations, bytes, err := internal.GetLocations(url)
 	if err != nil {
 		return err
 	}
+	DisplayLocations(locations, config)
 	err = updatePreviousAndNext(&locations, config, direction, url)
-	if err != nil {
-		return err
-	}
-
-	// add to cache
-	bytes, err = json.Marshal(locations)
 	if err != nil {
 		return err
 	}
@@ -325,10 +317,6 @@ func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pok
 }
 
 func commandPokedex(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
-	fmt.Println("Your Pokedex:")
-	for key := range pokedex.Entries {
-		fmt.Printf("   - %v\n", key)
-	}
-	fmt.Println()
+	DisplayPokedex(pokedex, config)
 	return nil
 }

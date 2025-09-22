@@ -25,7 +25,7 @@ func main() {
 
 	term := repl.Terminal{}
 
-	config := repl.Config{Next: "", Current: "", Previous: nil, Orig_Term_Settings: orig}
+	config := repl.Config{Next: "", Current: "", Previous: nil}
 
 	pokedex := internal.Pokedex{Entries: make(map[string]internal.Pokemon)}
 

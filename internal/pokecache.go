@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -61,20 +59,4 @@ func NewCache(duration time.Duration) *Cache {
 	timer := time.NewTicker(duration)
 	go cache.reapLoop(timer)
 	return cache
-}
-
-func PrintLocationsFromCache(bytes []byte) (ListofLocations, error) {
-	locations := ListofLocations{}
-	err := json.Unmarshal(bytes, &locations)
-	if err != nil {
-		return locations, fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
-	}
-
-	fmt.Println("-------------------------------")
-	for _, area := range locations.Results {
-		fmt.Println(area.Name)
-	}
-	fmt.Println("-------------------------------")
-
-	return locations, nil
 }

@@ -155,18 +155,12 @@ func GetLocations(url string) (ListofLocations, []byte, error) {
 	return areas, data, nil
 }
 
-func PrintLocations(url string) (ListofLocations, error) {
-	locations, _, err := GetLocations(url)
+func GetLocationsFromCache(bytes []byte) (ListofLocations, error) {
+	locations := ListofLocations{}
+	err := json.Unmarshal(bytes, &locations)
 	if err != nil {
-		return locations, fmt.Errorf("error making new get request: %v", err)
+		return ListofLocations{}, fmt.Errorf("error unmarshalling data from cache into list of locations struct: %v", err)
 	}
-
-	fmt.Println("-------------------------------")
-	for _, area := range locations.Results {
-		fmt.Println(area.Name)
-	}
-	fmt.Println("-------------------------------")
-
 	return locations, nil
 }
 

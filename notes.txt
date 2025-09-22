@@ -4,7 +4,7 @@ documentation and review code logic
 
 implement delay and "shake" logic before catching or having a pokemon release
 
-add standard terminal input commands such as pagination of previous commands, backspace and delete keys, arrowing through input, and using interrupt commands.
+(done) add standard terminal input commands such as pagination of previous commands, backspace and delete keys, arrowing through input, and using interrupt commands.
 
 add selectability to menu options provided. number options listed and then associate numebrs with command input.
 
