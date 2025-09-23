@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -18,7 +19,7 @@ type cliCommand struct {
 }
 
 type Menu struct {
-	Options map[string]string
+	Options map[int]string
 }
 
 type Config struct {
@@ -226,8 +227,23 @@ func commandMapb(config *Config, cache *internal.Cache, pokedex *internal.Pokede
 // provide list of pokemon in provided location
 func commandExplore(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	cleanedInput := strings.Fields(strings.ToLower(input))
-	if len(cleanedInput) < 2 {
-		fmt.Println("please provide a location name after explore. Ex: explore canalave-city-area")
+	if len(cleanedInput) != 2 {
+		fmt.Println("please provide a location name after explore or a number matching to the currently displayed areas via map or mapb command. Do not provide further info. Ex: explore canalave-city-area, explore 10")
+		return nil
+	}
+
+	num, err := strconv.Atoi(cleanedInput[1])
+	if err == nil {
+		_, found := config.Menu_options.Options[num]
+		if !found {
+			fmt.Println("The number you provided is outside the range of available displayed options.")
+			return nil
+		}
+		area, err := internal.GetLocationsPokemon(config.Menu_options.Options[num])
+		if err != nil {
+			return fmt.Errorf("issue grabbing this locations available pokemon: %w", err)
+		}
+		DisplayPokemonInArea(area, config)
 		return nil
 	}
 
@@ -236,28 +252,48 @@ func commandExplore(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		fmt.Println("issue grabbing this location. Location name is incorrectly spelled or doesn't exist")
 		return nil
 	}
-
-	DisplayPokemonInArea(area)
-
+	DisplayPokemonInArea(area, config)
 	return nil
 }
 
 func commandCatch(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	// get pokemon name
 	cleanedInput := strings.Fields(strings.ToLower(input))
-	if len(cleanedInput) < 2 {
-		fmt.Println("please provide a pokemon name after catch. Ex: catch pikachu")
+	if len(cleanedInput) != 2 {
+		fmt.Println("please provide a pokemon name after catch or a number that refers to displayed options. Do not provide any further info. Ex: catch pikachu, catch 2")
 		return nil
 	}
 
-	// grab pokemon info if in pokedex already
-	pokemon, err := pokedex.GetPokemonFromPokedex(cleanedInput[1])
-	if err != nil {
-		// make get request for pokemon xp
-		pokemon, err = internal.GetPokemon(cleanedInput[1])
-		if err != nil {
-			fmt.Println("issue grabbing this pokemon. Pokemon name is incorrectly spelled or doesn't exist")
+	pokemon := internal.Pokemon{}
+
+	num, err := strconv.Atoi(cleanedInput[1])
+	if err == nil {
+		_, found := config.Menu_options.Options[num]
+		if !found {
+			fmt.Println("The number you provided is outside the range of available displayed options.")
 			return nil
+		}
+		// grab pokemon info if in pokedex already
+		pokemon, err = pokedex.GetPokemonFromPokedex(config.Menu_options.Options[num])
+		if err != nil {
+			// make get request for pokemon xp
+			pokemon, err = internal.GetPokemon(config.Menu_options.Options[num])
+			if err != nil {
+				fmt.Printf("Pokemon to grab: %s", config.Menu_options.Options[num])
+				fmt.Println("issue grabbing this pokemon")
+				return nil
+			}
+		}
+	} else {
+		// grab pokemon info if in pokedex already
+		pokemon, err = pokedex.GetPokemonFromPokedex(cleanedInput[1])
+		if err != nil {
+			// make get request for pokemon xp
+			pokemon, err = internal.GetPokemon(cleanedInput[1])
+			if err != nil {
+				fmt.Println("issue grabbing this pokemon. Pokemon name is incorrectly spelled or doesn't exist")
+				return nil
+			}
 		}
 	}
 
@@ -280,8 +316,24 @@ func commandCatch(config *Config, cache *internal.Cache, pokedex *internal.Poked
 func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	// get pokemon name
 	cleanedInput := strings.Fields(strings.ToLower(input))
-	if len(cleanedInput) < 2 {
-		fmt.Println("please provide a pokemon name after inspect. Ex: inspect pikachu")
+	if len(cleanedInput) != 2 {
+		fmt.Println("please provide a pokemon name after inspect or a number related to the most recent display. Do not provide further info. Ex: inspect pikachu, inspect 2")
+		return nil
+	}
+
+	num, err := strconv.Atoi(cleanedInput[1])
+	if err == nil {
+		_, found := config.Menu_options.Options[num]
+		if !found {
+			fmt.Println("The number you provided is outside the range of available displayed options.")
+			return nil
+		}
+		pokemon, err := pokedex.GetPokemonFromPokedex(config.Menu_options.Options[num])
+		if err != nil {
+			fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spell incorrectly\n\n")
+			return nil
+		}
+		DisplayPokemonInfo(pokemon)
 		return nil
 	}
 
@@ -290,19 +342,7 @@ func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spell incorrectly\n\n")
 		return nil
 	}
-
-	// Print Pokemon info
-	fmt.Printf("Name: %v\n", pokemon.Name)
-	fmt.Println("Stats:")
-	for _, statstruct := range pokemon.Stats {
-		fmt.Printf("   -%v: %v\n", statstruct.Stat.Name, statstruct.BaseStat)
-	}
-	fmt.Println("Types:")
-	for _, types := range pokemon.Types {
-		fmt.Printf("   - %v\n", types.Type.Name)
-	}
-
-	fmt.Println()
+	DisplayPokemonInfo(pokemon)
 	return nil
 }
 
