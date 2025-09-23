@@ -6,11 +6,13 @@ implement delay and "shake" logic before catching or having a pokemon release
 
 (done) add standard terminal input commands such as pagination of previous commands, backspace and delete keys, arrowing through input, and using interrupt commands.
 
-add selectability to menu options provided. number options listed and then associate numebrs with command input.
+(done) add selectability to menu options provided. number options listed and then associate numebrs with command input.
 
 look into making more helpful tests for code
 
 clean up presentation of line breaks and display of info
+
+player and enemy pokemon scale off your level
 
 add battle mode
     - need to be in battle mode to catch a pokemon

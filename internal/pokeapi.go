@@ -131,7 +131,17 @@ type Pokemon struct {
 			URL  string `json:"url"`
 		} `json:"type"`
 	} `json:"types"`
-	Weight int `json:"weight"`
+	Weight        int `json:"weight"`
+	Level         int
+	Current_stats struct {
+		Hp              int
+		Attack          int
+		Defense         int
+		Special_attack  int
+		Special_defense int
+		Speed           int
+	}
+	Current_health int
 }
 
 func GetLocations(url string) (ListofLocations, []byte, error) {
