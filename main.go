@@ -21,6 +21,7 @@ func main() {
 		fmt.Printf("error enabling raw mode for terminal input\n")
 		os.Exit(1)
 	}
+
 	defer repl.DisableRawMode(fd, orig)
 
 	term := repl.Terminal{}
@@ -47,6 +48,9 @@ func main() {
 		}
 		err = command.Callback(&config, cache, &pokedex, term.User_input)
 		if err != nil {
+			if err.Error() == "exit" {
+				break
+			}
 			fmt.Println(err)
 			return
 		}

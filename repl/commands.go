@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"os"
 	"sort"
 	"strings"
 	"syscall"
@@ -98,12 +97,7 @@ func RegisterCommands() map[string]cliCommand {
 
 func commandExit(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	fmt.Printf("Closing the Pokedex... Goodbye!\n")
-	err := DisableRawMode(config.File_desc, config.Orig_Term_Settings)
-	if err != nil {
-		return fmt.Errorf("there was an error disabling raw mode: %w", err)
-	}
-	os.Exit(0)
-	return nil
+	return errors.New("exit")
 }
 
 func commandHelp(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
@@ -243,11 +237,7 @@ func commandExplore(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		return nil
 	}
 
-	fmt.Println("---- Found Pokemon ----")
-	for _, pokemon := range area.PokemonEncounters {
-		fmt.Printf(" - %v\n", pokemon.Pokemon.Name)
-	}
-	fmt.Println("-----------------------")
+	DisplayPokemonInArea(area)
 
 	return nil
 }
