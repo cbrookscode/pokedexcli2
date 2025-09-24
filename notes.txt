@@ -10,6 +10,8 @@ implement delay and "shake" logic before catching or having a pokemon release
 
 look into making more helpful tests for code
 
+adjust errors from commands to just return err and have main function handle which errors deserve closing program vs printing error and continuing
+
 clean up presentation of line breaks and display of info
 
 player and enemy pokemon scale off your level

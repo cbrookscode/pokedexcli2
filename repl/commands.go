@@ -3,9 +3,7 @@ package repl
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -232,22 +230,13 @@ func commandExplore(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		return nil
 	}
 
-	num, err := strconv.Atoi(cleanedInput[1])
-	if err == nil {
-		_, found := config.Menu_options.Options[num]
-		if !found {
-			fmt.Println("The number you provided is outside the range of available displayed options.")
-			return nil
-		}
-		area, err := internal.GetLocationsPokemon(config.Menu_options.Options[num])
-		if err != nil {
-			return fmt.Errorf("issue grabbing this locations available pokemon: %w", err)
-		}
-		DisplayPokemonInArea(area, config)
+	entered_area_name, err := FilterInputForMenuOptionSelection(cleanedInput, config)
+	if err != nil {
+		fmt.Printf("%s\n", err)
 		return nil
 	}
 
-	area, err := internal.GetLocationsPokemon(cleanedInput[1])
+	area, err := internal.GetLocationsPokemon(entered_area_name)
 	if err != nil {
 		fmt.Println("issue grabbing this location. Location name is incorrectly spelled or doesn't exist")
 		return nil
@@ -264,52 +253,13 @@ func commandCatch(config *Config, cache *internal.Cache, pokedex *internal.Poked
 		return nil
 	}
 
-	pokemon := internal.Pokemon{}
-
-	num, err := strconv.Atoi(cleanedInput[1])
-	if err == nil {
-		_, found := config.Menu_options.Options[num]
-		if !found {
-			fmt.Println("The number you provided is outside the range of available displayed options.")
-			return nil
-		}
-		// grab pokemon info if in pokedex already
-		pokemon, err = pokedex.GetPokemonFromPokedex(config.Menu_options.Options[num])
-		if err != nil {
-			// make get request for pokemon xp
-			pokemon, err = internal.GetPokemon(config.Menu_options.Options[num])
-			if err != nil {
-				fmt.Printf("Pokemon to grab: %s", config.Menu_options.Options[num])
-				fmt.Println("issue grabbing this pokemon")
-				return nil
-			}
-		}
-	} else {
-		// grab pokemon info if in pokedex already
-		pokemon, err = pokedex.GetPokemonFromPokedex(cleanedInput[1])
-		if err != nil {
-			// make get request for pokemon xp
-			pokemon, err = internal.GetPokemon(cleanedInput[1])
-			if err != nil {
-				fmt.Println("issue grabbing this pokemon. Pokemon name is incorrectly spelled or doesn't exist")
-				return nil
-			}
-		}
-	}
-
-	fmt.Printf("Throwing a Pokeball at %v...\n", pokemon.Name)
-
-	// Calculate chance to catch and determine if successful. Add to pokedex
-	myRNG := rand.Intn(101)
-	difficulty := internal.CalcChancetoCatchDifficulty(pokemon.BaseExperience)
-	if float64(myRNG) >= difficulty {
-		pokedex.AddPokemonToPokedex(pokemon)
-		fmt.Printf("You've caught %v!\n\n", pokemon.Name)
+	// grab pokemon struct
+	pokemon, err := GrabPokemon(cleanedInput, config, pokedex)
+	if err != nil {
+		fmt.Printf("%v", err)
 		return nil
 	}
-	fmt.Printf("%v managed to break free!\n", pokemon.Name)
-
-	fmt.Println()
+	ThrowPokeball(pokemon, pokedex)
 	return nil
 }
 
@@ -321,25 +271,15 @@ func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		return nil
 	}
 
-	num, err := strconv.Atoi(cleanedInput[1])
-	if err == nil {
-		_, found := config.Menu_options.Options[num]
-		if !found {
-			fmt.Println("The number you provided is outside the range of available displayed options.")
-			return nil
-		}
-		pokemon, err := pokedex.GetPokemonFromPokedex(config.Menu_options.Options[num])
-		if err != nil {
-			fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spell incorrectly\n\n")
-			return nil
-		}
-		DisplayPokemonInfo(pokemon)
+	entered_pokemon_name, err := FilterInputForMenuOptionSelection(cleanedInput, config)
+	if err != nil {
+		fmt.Printf("%s\n", err)
 		return nil
 	}
 
-	pokemon, err := pokedex.GetPokemonFromPokedex(cleanedInput[1])
+	pokemon, err := pokedex.GetPokemonFromPokedex(entered_pokemon_name)
 	if err != nil {
-		fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spell incorrectly\n\n")
+		fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spelled incorrectly\n\n")
 		return nil
 	}
 	DisplayPokemonInfo(pokemon)
