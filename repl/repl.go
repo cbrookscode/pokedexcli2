@@ -16,11 +16,12 @@ type Terminal struct {
 	history     []string
 	User_input  string
 	cursor      int
+	Line_prefix string
 }
 
 func redrawTerminal(term *Terminal, calc_backstep bool) {
 	fmt.Print("\r\033[K") // clear current line
-	fmt.Printf("Pokedex > %s", term.input_bytes)
+	fmt.Printf("%s %s", term.Line_prefix, term.input_bytes)
 	if calc_backstep {
 		num_backsteps := len(term.input_bytes) - term.cursor
 		if num_backsteps > 0 {
@@ -35,7 +36,6 @@ func HandleUserInput(term *Terminal, fd uintptr, orig *syscall.Termios) {
 	HandleInterrupts(fd, orig)
 	exit := false
 	term.cursor = 0
-	fmt.Print("Pokedex > ")
 	buf := make([]byte, 1)
 	for {
 		_, err := os.Stdin.Read(buf)
