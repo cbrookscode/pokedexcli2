@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"sync"
 )
@@ -78,6 +79,25 @@ type Pokedex struct {
 	mu      sync.Mutex
 }
 
+type MoveDetail struct {
+	Move struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	} `json:"move"`
+	VersionGroupDetails []struct {
+		LevelLearnedAt  int `json:"level_learned_at"`
+		MoveLearnMethod struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"move_learn_method"`
+		Order        interface{} `json:"order"`
+		VersionGroup struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"version_group"`
+	} `json:"version_group_details"`
+}
+
 type Pokemon struct {
 	Abilities []struct {
 		Ability struct {
@@ -87,32 +107,15 @@ type Pokemon struct {
 		IsHidden bool `json:"is_hidden"`
 		Slot     int  `json:"slot"`
 	} `json:"abilities"`
-	BaseExperience         int    `json:"base_experience"`
-	Height                 int    `json:"height"`
-	ID                     int    `json:"id"`
-	IsDefault              bool   `json:"is_default"`
-	LocationAreaEncounters string `json:"location_area_encounters"`
-	Moves                  []struct {
-		Move struct {
-			Name string `json:"name"`
-			URL  string `json:"url"`
-		} `json:"move"`
-		VersionGroupDetails []struct {
-			LevelLearnedAt  int `json:"level_learned_at"`
-			MoveLearnMethod struct {
-				Name string `json:"name"`
-				URL  string `json:"url"`
-			} `json:"move_learn_method"`
-			Order        interface{} `json:"order"`
-			VersionGroup struct {
-				Name string `json:"name"`
-				URL  string `json:"url"`
-			} `json:"version_group"`
-		} `json:"version_group_details"`
-	} `json:"moves"`
-	Name    string `json:"name"`
-	Order   int    `json:"order"`
-	Species struct {
+	BaseExperience         int          `json:"base_experience"`
+	Height                 int          `json:"height"`
+	ID                     int          `json:"id"`
+	IsDefault              bool         `json:"is_default"`
+	LocationAreaEncounters string       `json:"location_area_encounters"`
+	Moves                  []MoveDetail `json:"moves"`
+	Name                   string       `json:"name"`
+	Order                  int          `json:"order"`
+	Species                struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"species"`
@@ -198,6 +201,26 @@ func GetLocationsPokemon(location string) (LocationArea, error) {
 	return area, nil
 }
 
+func SetPokemonMoves(pokemon *Pokemon) {
+	indexes := []int{}
+	newmoves := []MoveDetail{}
+	for i := 0; i < 4; i++ {
+		random := rand.Intn(len(pokemon.Moves) - 1)
+		for {
+			for _, num := range indexes {
+				if random == num {
+					random = rand.Intn(len(pokemon.Moves) - 1) // get new random
+					break
+				}
+			}
+			break
+		}
+		indexes = append(indexes, random)
+		newmoves = append(newmoves, pokemon.Moves[random])
+	}
+	pokemon.Moves = newmoves
+}
+
 func GetPokemon(pokemon_name string) (Pokemon, error) {
 	url := "https://pokeapi.co/api/v2/pokemon/" + pokemon_name
 	pokemon := Pokemon{}
@@ -218,6 +241,8 @@ func GetPokemon(pokemon_name string) (Pokemon, error) {
 	if err != nil {
 		return pokemon, fmt.Errorf("error unmarshalling json: %v", err)
 	}
+
+	SetPokemonMoves(&pokemon)
 
 	return pokemon, nil
 }
