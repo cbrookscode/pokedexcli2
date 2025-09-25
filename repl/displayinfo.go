@@ -48,6 +48,10 @@ func DisplayPokemonInfo(pokemon internal.Pokemon) {
 	for _, types := range pokemon.Types {
 		fmt.Printf("   - %v\n", types.Type.Name)
 	}
+	fmt.Println("Moves:")
+	for _, move := range pokemon.Moves {
+		fmt.Printf("   - %v\n", move.Move.Name)
+	}
 
 	fmt.Println()
 }

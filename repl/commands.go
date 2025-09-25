@@ -283,9 +283,6 @@ func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		return nil
 	}
 	DisplayPokemonInfo(pokemon)
-	for i, move := range pokemon.Moves {
-		fmt.Printf("%d) %v\n", i, move.Move.Name)
-	}
 	return nil
 }
 
