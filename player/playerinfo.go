@@ -11,22 +11,27 @@ type Player struct {
 	Level int
 }
 
-func (p *Player) AddPokemonToPlayerParty(pokemon internal.Pokemon, pokedex *internal.Pokedex) {
+func (p *Player) AddPokemonToPlayerParty(pokemon internal.Pokemon, pokedex *internal.Pokedex) error {
 	// make sure pokemon to add is in pokedex
 	_, exists := pokedex.Entries[pokemon.Name]
 	if !exists {
-		fmt.Println("Pokemon is not in your pokedex yet, and so cannot be added to your party")
-		return
+		return fmt.Errorf("pokemon is not in your pokedex yet, and so cannot be added to your party")
 	}
 
+	// make sure pokemon is not already in the players party
+	for _, party_pokies := range p.Party {
+		if pokemon.Name == party_pokies.Name {
+			return fmt.Errorf("pokemon already is in your party")
+		}
+	}
 	// make sure party size isn't max
 	if len(p.Party) < 6 {
 		// adjust current stats based on player level
 		p.UpdatePokemonCurrentStatsToFull(&pokemon)
 		p.Party = append(p.Party, pokemon)
-		fmt.Printf("%s has been added to your party!\n", pokemon.Name)
+		return nil
 	} else {
-		fmt.Println("Your party is at max capacity (6).")
+		return fmt.Errorf("your party is at max capacity (6)")
 	}
 }
 
@@ -35,7 +40,7 @@ func (p *Player) UpdatePokemonCurrentStatsToFull(pokemon *internal.Pokemon) {
 		switch statstruct.Stat.Name {
 		case "hp":
 			pokemon.Current_stats.Hp = p.Level * statstruct.BaseStat
-			pokemon.Current_health = p.Level * statstruct.BaseStat
+			pokemon.Current_health = pokemon.Current_stats.Hp
 		case "attack":
 			pokemon.Current_stats.Attack = p.Level * statstruct.BaseStat
 		case "defense":

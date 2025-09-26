@@ -97,6 +97,11 @@ func RegisterCommands() map[string]cliCommand {
 			description: "Dislay the names of the pokemon in your party and their stats current stats",
 			Callback:    commandDisplayParty,
 		},
+		"add": {
+			name:        "add",
+			description: "Add a pokemon that is in your pokedex to your party",
+			Callback:    commandAdd,
+		},
 	}
 	return commands
 }
@@ -302,5 +307,34 @@ func commandDisplayParty(config *Config, cache *internal.Cache, pokedex *interna
 	for _, pokemon := range config.Player.Party {
 		DisplayPokemonInfoFromParty(pokemon)
 	}
+	return nil
+}
+
+func commandAdd(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
+	// get pokemon name
+	cleanedInput := strings.Fields(strings.ToLower(input))
+	if len(cleanedInput) != 2 {
+		fmt.Println("please provide a pokemon name after catch or a number that refers to displayed options. Do not provide any further info. Ex: catch pikachu, catch 2")
+		return nil
+	}
+
+	entered_pokemon_name, err := FilterInputForMenuOptionSelection(cleanedInput, config)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return nil
+	}
+
+	pokemon, exists := pokedex.Entries[entered_pokemon_name]
+	if !exists {
+		fmt.Println("This pokemon doesn't exist in your pokedex. You may have spelled the pokemon's name wrong")
+		return nil
+	}
+	err = config.Player.AddPokemonToPlayerParty(pokemon, pokedex)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil
+	}
+	fmt.Printf("%v has been successfully add to your party. To inspect the current members of your party use the party command\n", pokemon.Name)
+
 	return nil
 }

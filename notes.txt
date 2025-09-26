@@ -33,4 +33,6 @@ trigger encounters while exploring
 
 add different types of pokeballs
 
+search feature for displaying pokedex pokemon
+
 make it a downloadable executable that someone can run from their terminal of choice.

@@ -69,7 +69,11 @@ func main() {
 					return
 				}
 				pokedex.AddPokemonToPokedex(pokemon)
-				config.Player.AddPokemonToPlayerParty(pokemon, &pokedex)
+				err = config.Player.AddPokemonToPlayerParty(pokemon, &pokedex)
+				if err != nil {
+					fmt.Printf("%v\n", err)
+				}
+				fmt.Printf("%v has been added to your party\n", pokemon.Name)
 				start_of_program = false
 				continue
 			} else {
