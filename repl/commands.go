@@ -338,3 +338,32 @@ func commandAdd(config *Config, cache *internal.Cache, pokedex *internal.Pokedex
 
 	return nil
 }
+
+func commandBattle(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
+	// get pokemon name
+	cleanedInput := strings.Fields(strings.ToLower(input))
+	if len(cleanedInput) != 2 {
+		fmt.Println("please provide a pokemon name after catch or a number that refers to displayed options. Do not provide any further info. Ex: catch pikachu, catch 2")
+		return nil
+	}
+
+	entered_pokemon_name, err := FilterInputForMenuOptionSelection(cleanedInput, config)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return nil
+	}
+
+	enemy_pokemon, exists := pokedex.Entries[entered_pokemon_name]
+	if !exists {
+		enemy_pokemon, err = internal.GetPokemon(entered_pokemon_name)
+		if err != nil {
+			fmt.Println("This pokemon doesn't exist or was spelled incorrectly")
+			return nil
+		}
+	}
+
+	// player selects pokemon to battle with
+	// speed of each pokemon determines start order
+	// turn based combat until player out of pokemon, enemy poke captured, or enemy poke reaches 0 hp
+	// how to turn interface and ui to be locked into combat with no options available?
+}
