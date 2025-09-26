@@ -37,7 +37,7 @@ func DisplayPokemonInArea(area internal.LocationArea, config *Config) {
 	fmt.Println("-----------------------")
 }
 
-func DisplayPokemonInfo(pokemon internal.Pokemon) {
+func DisplayPokemonInfoFromPokedex(pokemon internal.Pokemon) {
 	// Print Pokemon info
 	fmt.Printf("Name: %v\n", pokemon.Name)
 	fmt.Println("Stats:")
@@ -52,6 +52,23 @@ func DisplayPokemonInfo(pokemon internal.Pokemon) {
 	for _, move := range pokemon.Moves {
 		fmt.Printf("   - %v\n", move.Move.Name)
 	}
+}
 
-	fmt.Println()
+func DisplayPokemonInfoFromParty(pokemon internal.Pokemon) {
+	fmt.Printf("Name: %v\n", pokemon.Name)
+	fmt.Println("Current Stats:")
+	fmt.Printf(
+		"   Attack: %v\n   Defense: %v\n   Max Hp: %v\n   Current Hp: %v\n   Special Attack: %v\n   Special Defense: %v\n   Speed: %v\n",
+		pokemon.Current_stats.Attack,
+		pokemon.Current_stats.Defense,
+		pokemon.Current_stats.Hp,
+		pokemon.Current_health,
+		pokemon.Current_stats.Special_attack,
+		pokemon.Current_stats.Special_defense,
+		pokemon.Current_stats.Speed,
+	)
+	fmt.Println("Moves:")
+	for _, move := range pokemon.Moves {
+		fmt.Printf("   - %v\n", move.Move.Name)
+	}
 }

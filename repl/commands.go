@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/cbrookscode/pokedexcli2/internal"
+	"github.com/cbrookscode/pokedexcli2/player"
 )
 
 type cliCommand struct {
@@ -27,6 +28,7 @@ type Config struct {
 	Orig_Term_Settings *syscall.Termios
 	File_desc          uintptr
 	Menu_options       Menu
+	Player             player.Player
 }
 
 // To facilitate the ability to loop when moving back and forward in map and mapb commands. If this logic doesn't exist then when you get to first entry then you cant go back to last.
@@ -89,6 +91,11 @@ func RegisterCommands() map[string]cliCommand {
 			name:        "pokedex",
 			description: "See what pokemon you have captured",
 			Callback:    commandPokedex,
+		},
+		"party": {
+			name:        "party",
+			description: "Dislay the names of the pokemon in your party and their stats current stats",
+			Callback:    commandDisplayParty,
 		},
 	}
 	return commands
@@ -282,11 +289,18 @@ func commandInspect(config *Config, cache *internal.Cache, pokedex *internal.Pok
 		fmt.Printf("The pokemon name provided doesn't exist in your pokedex or was spelled incorrectly\n\n")
 		return nil
 	}
-	DisplayPokemonInfo(pokemon)
+	DisplayPokemonInfoFromPokedex(pokemon)
 	return nil
 }
 
 func commandPokedex(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
 	DisplayPokedex(pokedex, config)
+	return nil
+}
+
+func commandDisplayParty(config *Config, cache *internal.Cache, pokedex *internal.Pokedex, input string) error {
+	for _, pokemon := range config.Player.Party {
+		DisplayPokemonInfoFromParty(pokemon)
+	}
 	return nil
 }

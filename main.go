@@ -28,11 +28,9 @@ func main() {
 
 	term := &repl.Terminal{Line_prefix: "Pokedex >"}
 
-	config := repl.Config{Next: "", Current: "", Previous: nil, Menu_options: repl.Menu{Options: make(map[int]string)}}
+	config := repl.Config{Next: "", Current: "", Previous: nil, Menu_options: repl.Menu{Options: make(map[int]string)}, Player: player.Player{Level: 5}}
 
 	pokedex := internal.Pokedex{Entries: make(map[string]internal.Pokemon)}
-
-	player := &player.Player{Level: 5}
 
 	starting_pokemon_options := []string{"bulbasaur", "charmander", "squirtle"}
 
@@ -71,7 +69,7 @@ func main() {
 					return
 				}
 				pokedex.AddPokemonToPokedex(pokemon)
-				player.AddPokemonToPlayerParty(pokemon)
+				config.Player.AddPokemonToPlayerParty(pokemon, &pokedex)
 				start_of_program = false
 				continue
 			} else {

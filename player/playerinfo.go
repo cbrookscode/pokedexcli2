@@ -11,11 +11,41 @@ type Player struct {
 	Level int
 }
 
-func (p *Player) AddPokemonToPlayerParty(pokemon internal.Pokemon) {
+func (p *Player) AddPokemonToPlayerParty(pokemon internal.Pokemon, pokedex *internal.Pokedex) {
+	// make sure pokemon to add is in pokedex
+	_, exists := pokedex.Entries[pokemon.Name]
+	if !exists {
+		fmt.Println("Pokemon is not in your pokedex yet, and so cannot be added to your party")
+		return
+	}
+
+	// make sure party size isn't max
 	if len(p.Party) < 6 {
+		// adjust current stats based on player level
+		p.UpdatePokemonCurrentStatsToFull(&pokemon)
 		p.Party = append(p.Party, pokemon)
 		fmt.Printf("%s has been added to your party!\n", pokemon.Name)
 	} else {
 		fmt.Println("Your party is at max capacity (6).")
+	}
+}
+
+func (p *Player) UpdatePokemonCurrentStatsToFull(pokemon *internal.Pokemon) {
+	for _, statstruct := range pokemon.Stats {
+		switch statstruct.Stat.Name {
+		case "hp":
+			pokemon.Current_stats.Hp = p.Level * statstruct.BaseStat
+			pokemon.Current_health = p.Level * statstruct.BaseStat
+		case "attack":
+			pokemon.Current_stats.Attack = p.Level * statstruct.BaseStat
+		case "defense":
+			pokemon.Current_stats.Defense = p.Level * statstruct.BaseStat
+		case "special-attack":
+			pokemon.Current_stats.Special_attack = p.Level * statstruct.BaseStat
+		case "special-defense":
+			pokemon.Current_stats.Special_defense = p.Level * statstruct.BaseStat
+		case "speed":
+			pokemon.Current_stats.Speed = p.Level * statstruct.BaseStat
+		}
 	}
 }
